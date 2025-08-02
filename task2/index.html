@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Player</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        :root {
+            --primary-color: #3b82f6; /* Tailwind blue-500 */
+            --background-dark: #1f2937; /* Tailwind gray-800 */
+            --card-dark: #374151; /* Tailwind gray-700 */
+            --text-light: #f9fafb; /* Tailwind gray-50 */
+            --text-secondary: #9ca3af; /* Tailwind gray-400 */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-dark);
+            color: var(--text-light);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .music-player-container {
+            width: 100%;
+            max-width: 420px;
+            background-color: var(--card-dark);
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .album-art {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 1 / 1;
+            border-radius: 50%;
+            object-fit: cover;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transition: transform 0.5s ease-in-out;
+        }
+        
+        .album-art.playing {
+            animation: rotateAlbum 20s linear infinite;
+        }
+
+        @keyframes rotateAlbum {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .song-info {
+            text-align: center;
+        }
+
+        .song-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .song-artist {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin: 4px 0 0;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            color: var(--text-light);
+            cursor: pointer;
+            padding: 12px;
+            transition: transform 0.2s ease, color 0.2s ease;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            color: var(--primary-color);
+        }
+
+        .control-btn svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        #play-pause-btn {
+            font-size: 2rem;
+            color: var(--primary-color);
+        }
+
+        #play-pause-btn svg {
+            width: 36px;
+            height: 36px;
+        }
+
+        .progress-bar-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .time {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        #progress-bar {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #4b5563; /* Tailwind gray-600 */
+            border-radius: 3px;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        #progress-bar::-webkit-slider-runnable-track {
+            background: #4b5563;
+        }
+        
+        #progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 12px;
+            width: 12px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: -400px 0 0 400px var(--primary-color); /* This creates the progress fill */
+        }
+        
+        #progress-bar::-moz-range-track {
+            background: #4b5563;
+        }
+
+        #progress-bar::-moz-range-progress {
+            background: var(--primary-color);
+        }
+        
+        #progress-bar::-moz-range-thumb {
+            background: var(--primary-color);
+            border: none;
+        }
+
+        .volume-control-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .volume-icon {
+            color: var(--text-secondary);
+        }
+
+        #volume-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #4b5563;
+            border-radius: 2px;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        #volume-slider::-webkit-slider-runnable-track {
+            background: #4b5563;
+        }
+
+        #volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 10px;
+            width: 10px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: -400px 0 0 400px var(--primary-color);
+        }
+
+        #volume-slider::-moz-range-track {
+            background: #4b5563;
+        }
+        
+        #volume-slider::-moz-range-progress {
+            background: var(--primary-color);
+        }
+
+        #volume-slider::-moz-range-thumb {
+            background: var(--primary-color);
+            border: none;
+        }
+
+        /* Playlist Styles */
+        .playlist {
+            max-height: 200px;
+            overflow-y: auto;
+            padding-right: 8px; /* For scrollbar spacing */
+        }
+        
+        .playlist-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            padding: 0 8px;
+        }
+
+        .playlist-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .playlist-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .playlist-item.active {
+            background-color: rgba(59, 130, 246, 0.2);
+        }
+
+        .playlist-item-thumbnail {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .playlist-item-info {
+            flex-grow: 1;
+        }
+
+        .playlist-item-title {
+            font-weight: 600;
+            font-size: 1rem;
+            margin: 0;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .playlist-item-artist {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin: 0;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .music-player-container {
+                padding: 16px;
+                gap: 16px;
+            }
+            .song-title {
+                font-size: 1.25rem;
+            }
+            .song-artist {
+                font-size: 0.875rem;
+            }
+            .control-btn svg {
+                width: 20px;
+                height: 20px;
+            }
+            #play-pause-btn svg {
+                width: 30px;
+                height: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="music-player-container">
+        <!-- Album Art -->
+        <img id="album-art" class="album-art" src="https://placehold.co/420x420/374151/f9fafb?text=Album+Art" alt="Album Art">
+
+        <!-- Song Info -->
+        <div class="song-info">
+            <h2 id="song-title" class="song-title">Song Title</h2>
+            <p id="song-artist" class="song-artist">Artist Name</p>
+        </div>
+
+        <!-- Progress Bar and Time -->
+        <div class="progress-bar-container">
+            <span id="current-time" class="time">0:00</span>
+            <input type="range" id="progress-bar" min="0" max="100" value="0">
+            <span id="duration" class="time">0:00</span>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button id="prev-btn" class="control-btn" style="width: 4px">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
+                <circle cx="20" cy="20" r="18" stroke="#000" stroke-width="2" fill="#fff"/>
+                <polyline points="23 28 15 20 23 12" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+
+            </button>
+            <button id="play-pause-btn" class="control-btn">
+                <!-- Play Icon (default) -->
+                <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
+                <circle cx="20" cy="20" r="18" stroke="#000" stroke-width="2" fill="#fff"/>
+                <path d="M16 11.14v17.72a1.5 1.5 0 0 0 2.32 1.28L29.5 20a1.5 1.5 0 0 0 0-2.56L18.32 8.86A1.5 1.5 0 0 0 16 11.14Z" fill="#000"/>
+                </svg>
+            <!-- pause btn -->
+             <svg id="pause-icon" style="display: none;" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
+                <circle cx="20" cy="20" r="18" stroke="#000" stroke-width="2" fill="#fff"/>
+                <path d="M14 11h4v18h-4V11Zm8 0h4v18h-4V11Z" fill="#000"/>
+                </svg>
+
+            </button>
+            <button id="next-btn" class="control-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
+                <circle cx="20" cy="20" r="18" stroke="#000" stroke-width="2" fill="#fff"/>
+                <polyline points="17 12 25 20 17 28" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+
+            </button>
+        </div>
+
+        <!-- Volume Control -->
+        <div class="volume-control-container">
+            <span class="volume-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M11 5a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1V5Zm-5 4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V9Zm-3 3a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2Zm16 0a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-2Z"/>
+                </svg>
+            </span>
+            <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.5">
+            <span class="volume-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14 3.23a1 1 0 0 1 1.7-.58l5 4a1 1 0 0 1 0 1.9L14 12.58A1 1 0 0 1 14 11V3.23ZM9 9.08a1 1 0 0 1 1.7-.58L15 12.58a1 1 0 0 1 0 1.9L10.7 18.5a1 1 0 0 1-1.7-.58v-8.84Z"/>
+                </svg>
+            </span>
+        </div>
+
+        <!-- Playlist (Bonus) -->
+        <div class="playlist-container">
+            <h3 class="playlist-title">Playlist</h3>
+            <div id="playlist" class="playlist">
+                <!-- Playlist items will be injected here by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- The hidden audio element -->
+    <audio id="audio-player"></audio>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Elements ---
+            const audioPlayer = document.getElementById('audio-player');
+            const albumArt = document.getElementById('album-art');
+            const songTitle = document.getElementById('song-title');
+            const songArtist = document.getElementById('song-artist');
+            const playPauseBtn = document.getElementById('play-pause-btn');
+            const playIcon = document.getElementById('play-icon');
+            const pauseIcon = document.getElementById('pause-icon');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const progressBar = document.getElementById('progress-bar');
+            const currentTimeEl = document.getElementById('current-time');
+            const durationEl = document.getElementById('duration');
+            const volumeSlider = document.getElementById('volume-slider');
+            const playlistEl = document.getElementById('playlist');
+
+            // --- State ---
+            let isPlaying = false;
+            let currentSongIndex = 0;
+            const songs = [
+                {
+                    title: "Chill Lofi",
+                    artist: "Relaxing Beats",
+                    audioSrc: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+                    imageSrc: "https://placehold.co/420x420/253b51/f9fafb?text=Lofi"
+                },
+                {
+                    title: "Uplifting Corporate",
+                    artist: "Stock Music",
+                    audioSrc: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+                    imageSrc: "https://placehold.co/420x420/465d75/f9fafb?text=Corporate"
+                },
+                {
+                    title: "Energetic Dubstep",
+                    artist: "Noise Generator",
+                    audioSrc: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+                    imageSrc: "https://placehold.co/420x420/6c7a8b/f9fafb?text=Dubstep"
+                }
+            ];
+
+            // --- Helper Functions ---
+            function formatTime(seconds) {
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = Math.floor(seconds % 60);
+                return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+            }
+
+            // --- Main Player Logic ---
+
+            function loadSong(song) {
+                audioPlayer.src = song.audioSrc;
+                albumArt.src = song.imageSrc;
+                songTitle.textContent = song.title;
+                songArtist.textContent = song.artist;
+                
+                // Reset progress bar
+                progressBar.value = 0;
+                currentTimeEl.textContent = '0:00';
+
+                updatePlaylistUI();
+            }
+
+            function playSong() {
+                audioPlayer.play();
+                isPlaying = true;
+                playIcon.style.display = 'none';
+                pauseIcon.style.display = 'inline';
+                albumArt.classList.add('playing');
+            }
+
+            function pauseSong() {
+                audioPlayer.pause();
+                isPlaying = false;
+                playIcon.style.display = 'inline';
+                pauseIcon.style.display = 'none';
+                albumArt.classList.remove('playing');
+            }
+
+            function togglePlayPause() {
+                if (isPlaying) {
+                    pauseSong();
+                } else {
+                    playSong();
+                }
+            }
+
+            function nextSong() {
+                currentSongIndex = (currentSongIndex + 1) % songs.length;
+                loadSong(songs[currentSongIndex]);
+                playSong();
+            }
+
+            function prevSong() {
+                currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
+                loadSong(songs[currentSongIndex]);
+                playSong();
+            }
+
+            // --- Event Listeners ---
+
+            // Load the first song
+            loadSong(songs[currentSongIndex]);
+
+            // Play/Pause button click
+            playPauseBtn.addEventListener('click', togglePlayPause);
+            
+            // Next button click
+            nextBtn.addEventListener('click', nextSong);
+
+            // Previous button click
+            prevBtn.addEventListener('click', prevSong);
+            
+            // Time update event for progress bar
+            audioPlayer.addEventListener('timeupdate', () => {
+                const { currentTime, duration } = audioPlayer;
+                if (!isNaN(duration)) {
+                    progressBar.value = (currentTime / duration) * 100;
+                    currentTimeEl.textContent = formatTime(currentTime);
+                }
+            });
+
+            // Song ended event for autoplay
+            audioPlayer.addEventListener('ended', nextSong);
+
+            // Metadata loaded to get total duration
+            audioPlayer.addEventListener('loadedmetadata', () => {
+                durationEl.textContent = formatTime(audioPlayer.duration);
+            });
+
+            // Progress bar interaction
+            progressBar.addEventListener('input', () => {
+                const seekTime = (progressBar.value / 100) * audioPlayer.duration;
+                if (!isNaN(seekTime)) {
+                    audioPlayer.currentTime = seekTime;
+                }
+            });
+
+            // Volume control
+            volumeSlider.addEventListener('input', () => {
+                audioPlayer.volume = volumeSlider.value;
+            });
+
+            // --- Playlist Functions (Bonus) ---
+
+            function renderPlaylist() {
+                playlistEl.innerHTML = ''; // Clear existing playlist
+                songs.forEach((song, index) => {
+                    const item = document.createElement('div');
+                    item.classList.add('playlist-item');
+                    item.innerHTML = `
+                        <img src="${song.imageSrc}" alt="${song.title}" class="playlist-item-thumbnail">
+                        <div class="playlist-item-info">
+                            <p class="playlist-item-title">${song.title}</p>
+                            <p class="playlist-item-artist">${song.artist}</p>
+                        </div>
+                    `;
+                    item.addEventListener('click', () => {
+                        currentSongIndex = index;
+                        loadSong(songs[currentSongIndex]);
+                        playSong();
+                    });
+                    playlistEl.appendChild(item);
+                });
+                updatePlaylistUI();
+            }
+
+            function updatePlaylistUI() {
+                const items = document.querySelectorAll('.playlist-item');
+                items.forEach((item, index) => {
+                    item.classList.toggle('active', index === currentSongIndex);
+                });
+            }
+
+            // Initial playlist render
+            renderPlaylist();
+        });
+    </script>
+</body>
+</html>
